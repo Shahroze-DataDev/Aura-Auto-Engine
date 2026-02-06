@@ -1,9 +1,5 @@
 fastapi
 uvicorn
-pandas
+nest_asyncio
+fpdf
 requests
-beautifulsoup4
-python-multipart
-pytesseract
-Pillow
-nest-asyncio
