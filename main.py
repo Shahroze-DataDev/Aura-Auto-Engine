@@ -2,43 +2,30 @@
 import os
 import uvicorn
 from fastapi import FastAPI, Form
-from fastapi.responses import HTMLResponse, StreamingResponse
-import io
-from fpdf import FPDF
+from fastapi.responses import HTMLResponse
 
 app = FastAPI()
-
-# Global stats for all users
-stats = {"scanned": 15420, "active_users": 85}
+users_vault = {}
+revenue_logs = []
 
 @app.get("/", response_class=HTMLResponse)
-async def public_home():
-    return f'''
-    <body style="background:#0d1117; color:white; font-family:sans-serif; text-align:center; padding-top:50px;">
-        <div style="background:#161b22; padding:40px; border-radius:15px; border:1px solid #30363d; display:inline-block;">
-            <h1 style="color:#58a6ff;">Aura Public Portal</h1>
-            <p>Total Leads Scanned: <strong>{stats['scanned']}</strong></p>
-            <hr style="border:0.5px solid #30363d;">
-            <form action="/dashboard" method="post">
-                <input name="u" placeholder="Your Name" required style="padding:10px; margin:10px; background:#0d1117; color:white; border:1px solid #30363d;"><br>
-                <button type="submit" style="background:#238636; color:white; padding:10px 30px; border:none; border-radius:5px; cursor:pointer;">Start Free Scrape</button>
-            </form>
-            <p style="font-size:12px; color:#8b949e; margin-top:20px;">Powered by Shahroze-DataDev Cloud Infrastructure</p>
-        </div>
-    </body>
-    '''
+async def home():
+    return "<h1>Aura Autonomous Engine</h1><p>Plan: $10 for 1000 Credits</p><a href='/signup'>Register Now</a>"
 
-@app.post("/dashboard", response_class=HTMLResponse)
-async def dashboard(u: str = Form(...)):
-    return f'''
-    <div style="background:#0d1117; color:white; min-height:100vh; padding:30px; font-family:sans-serif;">
-        <h2>Global Search: Active for {u}</h2>
-        <div style="background:#161b22; padding:20px; border:1px solid #30363d; border-radius:10px;">
-            <p>Scanning global directories... Please wait.</p>
-            <button disabled style="background:#21262d; color:#8b949e; padding:10px;">Scraping UK Market...</button>
-        </div>
-    </div>
-    '''
+@app.get("/signup", response_class=HTMLResponse)
+async def signup():
+    return "<h2>Sign Up</h2><form action='/activate' method='post'><input name='user' placeholder='User'><input name='txid' placeholder='TXID'><button>Activate</button></form>"
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+@app.post("/activate", response_class=HTMLResponse)
+async def activate(user: str = Form(...), txid: str = Form(...)):
+    users_vault[user] = {"credits": 1000}
+    revenue_logs.append({"user": user, "txid": txid, "amt": 10})
+    return f"<h1>Success!</h1><p>Welcome {user}. Status: Active</p>"
+
+@app.get("/shahroze-admin-access", response_class=HTMLResponse)
+async def admin():
+    total = sum(log['amt'] for log in revenue_logs)
+    return f"<h1>Admin Panel</h1><p>Total Revenue: ${total}</p><p>Total Users: {len(users_vault)}</p>"
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8000)
