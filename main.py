@@ -1,52 +1,47 @@
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 import uvicorn
 import os
 import random
 
-app = FastAPI(title="Aura Finance & Billing")
+app = FastAPI(title="Aura Bulk Job Collector")
+
+# جاب کیٹیگریز
+CATEGORIES = ["Data Dev", "Web Scraping", "Python Bot", "FastAPI", "Lead Gen"]
 
 @app.get("/", response_class=HTMLResponse)
-def dashboard():
+def home():
     return '''
     <html>
         <head>
-            <title>Shahroze Finance Portal</title>
+            <title>Bulk Job Portal</title>
             <style>
-                body { font-family: sans-serif; background: #0d1117; color: white; padding: 20px; text-align: center; }
-                .box { background: #161b22; border: 1px solid #30363d; padding: 20px; border-radius: 10px; margin: 10px auto; max-width: 500px; }
-                .btn { background: #238636; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; text-decoration: none; display: inline-block; }
-                input { padding: 10px; border-radius: 5px; border: 1px solid #30363d; background: #0d1117; color: white; margin-bottom: 10px; width: 80%; }
-                h1 { color: #58a6ff; }
+                body { font-family: sans-serif; background: #010409; color: white; padding: 20px; }
+                .job-card { background: #161b22; border: 1px solid #30363d; margin: 10px; padding: 15px; border-radius: 8px; text-align: left; }
+                .header { border-bottom: 2px solid #58a6ff; padding-bottom: 10px; margin-bottom: 20px; }
+                .tag { background: #238636; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+                button { background: #1f6feb; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
             </style>
         </head>
         <body>
-            <h1>Aura Billing System</h1>
-            <div class="box">
-                <h3>Generate Client Invoice</h3>
-                <input type="text" id="client" placeholder="Client Name">
-                <input type="number" id="amount" placeholder="Amount ($)">
-                <br>
-                <button class="btn" onclick="generate()">Download PDF Invoice</button>
+            <div class="header">
+                <h1>Aura Master Scraper: All Jobs Mode</h1>
+                <button onclick="location.reload()">Refresh All Jobs</button>
             </div>
-            
-            <script>
-                function generate() {
-                    const c = document.getElementById('client').value || 'Global-Client';
-                    const a = document.getElementById('amount').value || '0';
-                    window.location.href = `/generate-invoice?client=${c}&amount=${a}`;
-                }
-            </script>
+            <div id="jobs-container">
+                ''' + "".join([f'''
+                <div class="job-card">
+                    <span class="tag">{random.choice(CATEGORIES)}</span>
+                    <h3>Job Listing #{i}: Professional Required</h3>
+                    <p>Budget: ${random.randint(50, 2000)} | Status: Open</p>
+                    <button onclick="alert('Proposal Sent for Job {i}!')">Quick Apply</button>
+                </div>
+                ''' for i in range(1, 101)]) + '''
+            </div>
         </body>
     </html>
     '''
-
-@app.get("/generate-invoice")
-def make_invoice(client: str, amount: int):
-    # یہ فنکشن ایک سادہ ٹیکسٹ فائل بنائے گا جسے کلائنٹ رسید کے طور پر دیکھ سکتا ہے
-    invoice_content = f"--- AURA ENGINE INVOICE ---\nID: INV-{random.randint(1000, 9999)}\nClient: {client}\nAmount: ${amount}\nStatus: Pending Payment\nDeveloper: Shahroze Data Dev\nDate: {random.randint(1, 30)}-02-2026"
-    return Response(content=invoice_content, media_type="text/plain", headers={"Content-Disposition": f"attachment; filename=invoice_{client}.txt"})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
