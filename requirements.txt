@@ -1,9 +1,4 @@
 fastapi
 uvicorn
-pandas
-fpdf
-google-generativeai
-requests
-beautifulsoup4
+reportlab
 python-multipart
-nest-asyncio
