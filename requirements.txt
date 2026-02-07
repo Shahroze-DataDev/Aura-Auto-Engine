@@ -1,4 +1,6 @@
 fastapi
 uvicorn
-reportlab
 python-multipart
+reportlab
+requests
+beautifulsoup4
