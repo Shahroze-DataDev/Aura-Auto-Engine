@@ -1,65 +1,41 @@
+from fastapi import FastAPI, Form, Request, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from reportlab.pdfgen import canvas
 import os
-import threading
-import pandas as pd
-import datetime
-import nest_asyncio
-import uvicorn
-import google.generativeai as genai
-import requests
-from bs4 import BeautifulSoup
-from fpdf import FPDF
-from fastapi import FastAPI, Form
-from fastapi.responses import FileResponse, HTMLResponse
-
-nest_asyncio.apply()
 
 app = FastAPI()
+security = HTTPBasic()
 
-GEMINI_KEY = os.getenv("GEMINI_KEY")
-genai.configure(api_key=GEMINI_KEY)
+# Admin Credentials (آپ کا خفیہ پاس ورڈ)
+ADMIN_USER = "shahroze"
+ADMIN_PASS = "aura2026"
 
-def aura_web_scraper(url):
-    try:
-        response = requests.get(url, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        text_data = soup.get_text()[:2000]
-        return text_data
-    except:
-        return "Error fetching data"
+# انوائسز کا ریکارڈ رکھنے کے لیے ایک سادہ لسٹ (ڈیٹا بیس کا کام کرے گی)
+invoice_history = []
 
-def aura_financial_admin(client, amount):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="AURA ENGINE - OFFICIAL INVOICE", ln=1, align='C')
-    pdf.cell(200, 10, txt=f"Client: {client}", ln=2, align='L')
-    pdf.cell(200, 10, txt=f"Amount: ${amount}", ln=3, align='L')
-    pdf.cell(200, 10, txt=f"Date: {datetime.date.today()}", ln=4, align='L')
-    path = f"Invoice_{client}.pdf"
-    pdf.output(path)
-    return path
+def get_current_user(credentials: HTTPBasicCredentials = Depends(security)):
+    if credentials.username != ADMIN_USER or credentials.password != ADMIN_PASS:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
 
 @app.get("/", response_class=HTMLResponse)
-async def admin_dashboard():
+async def client_portal():
     return """
     <html>
-        <head>
-            <title>Aura Engine Cloud</title>
-            <style>
-                body { font-family: sans-serif; background: #f0f2f5; padding: 20px; text-align: center; }
-                .card { background: white; padding: 20px; border-radius: 10px; max-width: 500px; margin: auto; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-                input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; }
-                button { width: 90%; padding: 10px; background: #1a73e8; color: white; border: none; cursor: pointer; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>🚀 Aura Engine Live</h1>
-                <p>300+ Automation Skills Active</p>
+        <head><title>Aura Client Portal</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 50px; background-color: #f4f7f9;">
+            <div style="background: white; padding: 30px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <h1>🚀 Aura Engine - Client Portal</h1>
+                <p>Generate your official invoice below</p>
                 <form action="/generate-invoice" method="post">
-                    <input name="client" placeholder="Client Name" required>
-                    <input name="amount" placeholder="Amount ($)" required>
-                    <button type="submit">Generate PDF Invoice</button>
+                    <input type="text" name="client_name" placeholder="Your Name" required style="width: 100%; padding: 10px; margin: 10px 0;"><br>
+                    <input type="number" name="amount" placeholder="Amount ($)" required style="width: 100%; padding: 10px; margin: 10px 0;"><br>
+                    <button type="submit" style="background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; width: 100%;">Generate PDF Invoice</button>
                 </form>
             </div>
         </body>
@@ -67,10 +43,35 @@ async def admin_dashboard():
     """
 
 @app.post("/generate-invoice")
-async def handle_invoice(client: str = Form(...), amount: str = Form(...)):
-    file_path = aura_financial_admin(client, amount)
+async def generate_invoice(client_name: str = Form(...), amount: int = Form(...)):
+    from datetime import date
+    today = date.today()
+    invoice_history.append({"client": client_name, "amount": amount, "date": str(today)})
+    
+    file_path = f"Invoice_{client_name}.pdf"
+    c = canvas.Canvas(file_path)
+    c.drawString(100, 750, "AURA ENGINE - OFFICIAL INVOICE")
+    c.drawString(100, 720, f"Client: {client_name}")
+    c.drawString(100, 700, f"Amount: ${amount}")
+    c.drawString(100, 680, f"Date: {today}")
+    c.save()
     return FileResponse(file_path, filename=file_path)
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_panel(username: str = Depends(get_current_user)):
+    rows = "".join([f"<tr><td>{i['date']}</td><td>{i['client']}</td><td>${i['amount']}</td></tr>" for i in invoice_history])
+    return f"""
+    <html>
+        <head><title>Admin Dashboard</title></head>
+        <body style="font-family: sans-serif; padding: 50px;">
+            <h1>🛡️ Admin Control Panel</h1>
+            <p>Welcome, {username}! Here is your business data:</p>
+            <table border="1" style="width: 100%; text-align: left; border-collapse: collapse;">
+                <tr style="background: #eee;"><th>Date</th><th>Client Name</th><th>Amount</th></tr>
+                {rows}
+            </table>
+            <br>
+            <a href="/">Go to Client Portal</a>
+        </body>
+    </html>
+    """
