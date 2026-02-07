@@ -1,4 +1,8 @@
 fastapi
 uvicorn
-reportlab
 python-multipart
+reportlab
+pandas
+google-generativeai
+requests
+beautifulsoup4
